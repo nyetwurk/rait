@@ -1,0 +1,21 @@
+{
+  "manifest_version": 2,
+  "name": "Replace All in Tabs",
+  "description": "Replace All in Tabs",
+  "version": "1.0",
+  "applications": {
+    "gecko": {
+      "id": "RAiT@nyet.org",
+      "strict_min_version": "59.0"
+    }
+  },
+
+  "background": {
+    "scripts": ["background.js"]
+  },
+
+  "permissions": [
+    "bookmarks",
+    "contextMenus"
+  ]
+}
