@@ -6,34 +6,67 @@ browser.contextMenus.create({
 
 var storedOptions;
 var oldTabs;
-var leaves;
+var tasks;
+var recurseTasks;
 
-function updateAndRemoveOldTabs(children) {
-    leaves = 0;
-    updateTabList(children);
-    // remove leftover tabs, but only if we made new tabs, otherwise
-    // there will be nothing left and the window will close.
-    if (storedOptions.indexOf("closeOtherTabs") != -1 &&
-        leaves>0 && oldTabs.length>0) {
-	browser.tabs.remove(oldTabs);
-    }
+function showError(title, error)
+{
+    let window = `window.alert("${title}\\n\\n${error}");`;
+    browser.tabs.executeScript({code: window});
 }
 
-function updateTabList(children) {
+function updateAndRemoveOldTabs(children) {
+    tasks = [];
+    recurseTasks = [];
+    updateBookmarks(children);
+    /* traverse recursed tab list to fill flat oldTabs list */
+    Promise.all(recurseTasks).then(function() {
+	/* traverse tabs to be opened */
+	Promise.all(tasks).then(arrayOfResults => {
+	    // get list of successes
+	    let ok = arrayOfResults.filter(v => v.ok);
+	    // remove leftover tabs, but only if we have new tabs, otherwise
+	    // there will be nothing left and the window will close.
+	    if (storedOptions.indexOf("closeOtherTabs") != -1 &&
+		ok.length>0 && oldTabs.length>0) {
+		browser.tabs.remove(oldTabs);
+	    }
+	    // get list of failures
+	    let errs = arrayOfResults.map(v => v.err).filter(Boolean);
+	    if (errs.length>0)
+		showError("Could not load bookmark(s):", errs.join('\\n'));
+	});
+    });
+}
+
+/* Give a promise return values and add it to the task list */
+function loadTab(promise)
+{
+    tasks.push(
+	promise.then(
+	    tab => {return {ok:true}},
+	    e => {return {ok:false, err:e.message}}
+	)
+    );
+}
+
+/* recursively generate list of old tabs and bookmark loading promises */
+function updateBookmarks(children) {
     for (child of children) {
 	if (child.url != null) {
+	    let url = { url:child.url };
 	    if (oldTabs.length>0) {
 		// update existing tab
-	        browser.tabs.update(oldTabs.shift(), { url:child.url })
+		loadTab(browser.tabs.update(oldTabs.shift(), url))
 	    } else {
 		// make new tab
-		browser.tabs.create({ url:child.url });
+		loadTab(browser.tabs.create(url));
 	    }
-	    leaves++;
 	} else {
 	    // recurse if enabled.
 	    if (storedOptions.indexOf("recurse") != -1)
-		browser.bookmarks.getChildren(child.id).then(updateTabList);
+		recurseTasks.push(browser.bookmarks.getChildren(child.id)
+		    .then(updateBookmarks));
 	}
     }
 }
