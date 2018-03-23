@@ -1,0 +1,26 @@
+body {
+/*
+  width: 25em;
+  font-family: "Open Sans Light", sans-serif;
+  font-size: 0.9em;
+  font-weight: 300;
+*/
+  padding-left: 0.5em;
+}
+
+.options label {
+  display: block;
+/*  padding: 0.2em 0; */
+}
+.options input {
+    vertical-align: middle;
+}
+
+.options label span {
+    vertical-align: middle;
+}
+
+.title {
+  font-size: 1.2em;
+  margin-bottom: 0.5em;
+}
