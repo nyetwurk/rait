@@ -1,7 +1,8 @@
 VERSION = $(shell grep \"version\": manifest.json | cut -f 4 -d \")
 
-FILES = LICENSE README.md manifest.json background.js icons/rait.svg \
-	options/options.css options/options.html options/options.js
+FILES = LICENSE README.md manifest.json background.js \
+	options/options.css options/options.html options/options.js \
+        $(wildcard icons/*.svg icons/*.png)
 
 ReplaceAllInTabs-${VERSION}.xpi: Makefile ${FILES}
 	zip $@ ${FILES}

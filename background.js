@@ -1,7 +1,11 @@
+window.browser = (function () {
+    return window.msBrowser || window.browser || window.chrome;
+})();
+
 browser.contextMenus.create({
-  id: "replace-all-in-tabs",
-  title: "Replace All In Tabs",
-  contexts: ["bookmark"],
+    id: "replace-all-in-tabs",
+    title: "Replace All In Tabs",
+    contexts: ["bookmark"]	// does not work in chrome, of course.
 });
 
 var storedOptions;
