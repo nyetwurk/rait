@@ -1,10 +1,9 @@
 function render(info) {
     document.title = info.url;
-    let errorDiv = document.createElement('div');
-    errorDiv.innerHTML =
-	`Web extensions are not permitted to load <a href="${info.url}">${info.url}</a>.<br>` +
-	`Report this bug to <a href="https://bugzilla.mozilla.org/">Mozilla</a>.`;
-    document.body.appendChild(errorDiv);
+    let aElement = document.createElement('a');
+    aElement.setAttribute('href', info.url);
+    aElement.appendChild(document.createTextNode(info.url));
+    document.getElementById("bad_url").appendChild(aElement);
     if (!info.isNew) {
 	let button = document.createElement('div');
 	button.innerHTML = '<button>Restore tab contents</button>';
