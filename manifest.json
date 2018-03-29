@@ -2,7 +2,7 @@
   "manifest_version": 2,
   "name": "Replace All in Tabs",
   "description": "Replace existing tabs with all bookmarks from a bookmark folder",
-  "version": "1.0.6",
+  "version": "1.0.7",
   "author": "Nye Liu",
 
   "applications": {
@@ -35,7 +35,6 @@
   },
 
   "permissions": [
-    "<all_urls>",
     "storage",
     "bookmarks",
     "contextMenus"

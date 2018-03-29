@@ -11,16 +11,18 @@ browser.contextMenus.create({
 var storedOptions;
 var recurseTasks;
 var updateTasks;
+var errMap;
 
-function showError(title, error)
-{
-    let window = `window.alert("${title}\\n\\n${error}");`;
-    browser.tabs.executeScript({code: window});
+function tabUpdateOrCreate(id, prop) {
+    if (id!=null)
+	return browser.tabs.update(id, prop);
+    return browser.tabs.create(prop);
 }
 
 function updateAndRemoveOldTabs(oldTabs, bookmarks) {
     recurseTasks = [];
     updateTasks = [];
+    errMap = [];
     /* gather recurseTasks and updateTasks */
     recurseBookmarks(oldTabs, bookmarks);
     /* traverse bookmark list */
@@ -38,20 +40,37 @@ function updateAndRemoveOldTabs(oldTabs, bookmarks) {
 		browser.tabs.remove(oldTabs);
 	    }
 	    /* get list of failures */
-	    let errs = arrayOfResults.map(v => v.err).filter(Boolean);
-	    if (errs.length>0)
-		showError("Could not load bookmark(s):", errs.join('\\n'));
+	    let errs = arrayOfResults.filter(v => !v.ok)
+	    let prop = { url: "/error.html" }
+	    for (err of errs) {
+		let id = err.tab.id;
+		let url = err.url;
+		tabUpdateOrCreate(id, prop)
+		.then (tab => {
+		    console.log(`Not permitted to load "${url}" in tab #${tab.id}`);
+		    errMap[tab.id] = { url: url, isNew: id==null };
+		});
+	    }
 	});
     });
 }
 
+browser.runtime.onMessage.addListener(function(req, sender, resp) {
+    if (req.action = "getError") {
+	if (errMap.indexOf[sender.tab.id] != -1)
+	    resp(errMap[sender.tab.id]);
+	else
+	    console.log(`unknown URL for tab ${sender.tab.id}`);
+    }
+});
+
 /* Give a promise return values and add it to the task list */
-function loadTab(promise)
+function loadTab(promise, id, url)
 {
     updateTasks.push(
 	promise.then(
-	    tab => {return {ok:true}},
-	    e => {return {ok:false, err:e.message}}
+	    tab => {return {ok:true, tab:tab, url:url}},
+	    e => {return {ok:false, tab:{id:id}, url:url, err:e.message}}
 	)
     );
 }
@@ -60,14 +79,9 @@ function loadTab(promise)
 function recurseBookmarks(oldTabs, bookmarks) {
     for (child of bookmarks) {
 	if (child.url != null) {
-	    let url = { url:child.url };
-	    if (oldTabs.length>0) {
-		/* update existing tab */
-		loadTab(browser.tabs.update(oldTabs.shift(), url))
-	    } else {
-		/* make new tab */
-		loadTab(browser.tabs.create(url));
-	    }
+	    let id = (oldTabs.length>0)?oldTabs.shift():null;
+	    let p = tabUpdateOrCreate(id, { url: child.url });
+	    loadTab(p, id, child.url);
 	} else {
 	    /* recurse if enabled */
 	    if (storedOptions.indexOf("recurse") != -1) {
