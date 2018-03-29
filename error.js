@@ -3,7 +3,7 @@ function render(info) {
     let aElement = document.createElement('a');
     aElement.setAttribute('href', info.url);
     aElement.appendChild(document.createTextNode(info.url));
-    document.getElementById("bad_url").appendChild(aElement);
+    document.getElementById("bad_url").replaceWith(aElement);
     if (!info.isNew) {
 	let button = document.createElement('div');
 	button.innerHTML = '<button>Restore tab contents</button>';
