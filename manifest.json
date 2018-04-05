@@ -23,7 +23,9 @@
           "19": "icons/rait19.png",
           "20": "icons/rait20.png",
           "38": "icons/rait38.png"
-        }
+        },
+	"browser_style": true,
+	"default_popup": "options/options.html"
   },
 
   "background": {
