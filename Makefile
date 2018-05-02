@@ -6,3 +6,6 @@ FILES = LICENSE README.md manifest.json background.js error.html error.js \
 
 ReplaceAllInTabs-${VERSION}.xpi: Makefile ${FILES}
 	zip $@ ${FILES}
+
+tag:
+	git tag --force v${VERSION}
