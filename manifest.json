@@ -2,7 +2,8 @@
   "manifest_version": 2,
   "name": "Replace All in Tabs",
   "description": "Replace existing tabs with all bookmarks from a bookmark folder",
-  "version": "1.0.8",
+  "version": "1.0.9",
+  "version_name": "1.0.9-rc1",
   "author": "Nye Liu",
 
   "applications": {

@@ -1,4 +1,4 @@
-VERSION = $(shell grep \"version\": manifest.json | cut -f 4 -d \")
+VERSION = $(shell jq -r '.version_name' manifest.json)
 
 FILES = LICENSE README.md manifest.json background.js error.html error.js \
 	options/options.css options/options.html options/options.js \
