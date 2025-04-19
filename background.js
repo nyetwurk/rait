@@ -4,21 +4,8 @@ browser.contextMenus.create({
     contexts: ["bookmark"]
 });
 
-// Test URLs for error page verification
-const TEST_URLS = {
-    // Regular URLs
-    simple: "https://example.com",
-    // URLs with special characters
-    specialChars: "https://example.com/path?query=value&param=test#fragment",
-    // URLs with spaces
-    spaces: "https://example.com/path with spaces",
-    // URLs with non-ASCII characters
-    nonAscii: "https://example.com/测试",
-    // Malformed URLs
-    malformed: "not a url",
-    // Very long URLs
-    long: "https://example.com/" + "a".repeat(1000)
-};
+// Default options (used if storage is unset)
+const defaultOptions = ["keepPinnedTabs"];
 
 // Utility function to construct error page URL
 function constructErrorPageUrl(url, isNewTab) {
@@ -143,9 +130,9 @@ async function updateAndRemoveOldTabs(originalTabs, bookmarks, recurseTasks, upd
             let url = err.url;
             let errorPageUrl = constructErrorPageUrl(url, id == null);
             try {
-                const tab = await tabUpdateOrCreate(id, { url: errorPageUrl }, false);
+                await tabUpdateOrCreate(id, { url: errorPageUrl }, false);
                 // Debug: Log error page creation
-                // console.log(`[Debug] Created error page for ${url} in tab ${tab.id}`);
+                // console.log(`[Debug] Created error page for ${url} in tab ${id}`);
             } catch (e) {
                 console.error(`Failed to open error page for ${url}:`, e);
             }
@@ -216,12 +203,12 @@ function recurseBookmarks(oldTabObjects, bookmarks, recurseTasks, updateTasks, i
 }
 
 async function replaceAllInTabs(id) {
-    let recurseTasks = [];
-    let updateTasks = [];
+    // These task arrays are managed within updateAndRemoveOldTabs now
+    // let recurseTasks = [];
+    // let updateTasks = [];
 
     try {
         const settings = await browser.storage.local.get();
-        // Determine effective options locally
         const effectiveOptions = settings.options === undefined ? defaultOptions : settings.options;
 
         const [bms, tabs] = await Promise.all([
@@ -229,15 +216,16 @@ async function replaceAllInTabs(id) {
             browser.tabs.query({ currentWindow: true })
         ]);
 
-        // Pass effectiveOptions down
-        await updateAndRemoveOldTabs(tabs, bms, recurseTasks, updateTasks, effectiveOptions);
+        // Pass only necessary arguments down
+        await updateAndRemoveOldTabs(tabs, bms, [], [], effectiveOptions); // Pass empty arrays directly
 
     } catch (e) {
         console.error("Error during replaceAllInTabs execution:", e);
     }
 }
 
-browser.contextMenus.onClicked.addListener((info, tab) => {
+browser.contextMenus.onClicked.addListener((info, _tab) => {
+  // The 'tab' parameter provided by the API is not used in this listener.
   switch (info.menuItemId) {
     case "replace-all-in-tabs":
 	replaceAllInTabs(info.bookmarkId);

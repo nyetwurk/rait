@@ -1,0 +1,26 @@
+# .github/workflows/reusable-lint.yml
+name: Reusable Lint Check
+
+on:
+  workflow_call:
+    # No inputs needed for this simple lint workflow
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Or your required version
+          cache: 'npm' # Cache npm dependencies
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Run linter
+        # Assuming your lint command is defined in package.json
+        run: npm run lint

@@ -1,0 +1,28 @@
+name: Build XPI PR
+
+on:
+#  push:
+#    branches:
+#      - main # Trigger on pushes to the main branch
+  pull_request:
+    branches:
+      - master # Trigger on pull requests targeting the master branch
+    types: [opened, synchronize, reopened] # Explicitly trigger on create, commit push, and reopen
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  lint:
+    name: Run Linter
+    # lint-ignore # Attempt to ignore potential linter warning
+    uses: ./.github/workflows/reusable-lint.yml
+    permissions: {}
+    secrets: inherit
+
+  build:
+    name: Build XPI Package
+    needs: lint # Ensure lint passes before building
+    # lint-ignore # Attempt to ignore potential linter warning
+    uses: ./.github/workflows/reusable-build.yml
+    permissions: {}
+    secrets: inherit
+    # No outputs needed from build, it uploads its own artifact

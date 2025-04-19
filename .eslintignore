@@ -1,0 +1,5 @@
+# Ignore third-party libraries
+browser-polyfill.js
+
+# Ignore build artifacts if necessary
+# node_modules/

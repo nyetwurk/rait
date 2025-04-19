@@ -1,0 +1,12 @@
+{
+  "name": "rait",
+  "version": "1.0.9",
+  "description": "Replace All in Tabs Firefox Extension",
+  "private": true,
+  "scripts": {
+    "lint": "eslint ."
+  },
+  "devDependencies": {
+    "eslint": "^8.0.0"
+  }
+}
