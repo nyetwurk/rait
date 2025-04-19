@@ -1,45 +1,104 @@
+/* Reset and base styles */
 body {
-  max-width: 300px; /* Even narrower */
-  margin: 5px auto; /* Minimal top/bottom margin */
-  padding: 8px; /* Reduced padding */
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol"; /* System font stack */
-  font-size: 13px; /* Smaller base font size */
-  line-height: 1.3; /* Tighter line height */
-  color: #333; /* Darker text color */
+  margin: 0;
+  padding: 2px; /* Minimal padding around the whole menu */
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+  font-size: 13px;
+  line-height: 1.4;
+  background-color: #f0f0f0; /* Typical menu background */
+  color: #0c0c0d;
+  min-width: 200px; /* Prevent it from being too narrow */
+  white-space: nowrap;
+  transition: background-color 0.2s, color 0.2s;
 }
 
-.options {
-    margin-top: 8px; /* Further reduced space */
-    padding: 8px; /* Reduced padding */
-    border: 1px solid #ddd; /* Subtle border */
-    border-radius: 3px; /* Smaller radius */
-    background-color: #f9f9f9; /* Slight background color */
+/* Menu list */
+.menu-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
-.options label {
-  display: block;
-  margin-bottom: 5px; /* Further reduced space between options */
-  cursor: pointer; /* Indicate labels are clickable */
+/* Menu items */
+.menu-item {
+  padding: 5px 20px 5px 25px; /* Top/Bottom | Right | Left (leaves space for check) */
+  position: relative; /* For checkmark positioning */
+  cursor: pointer;
+  user-select: none; /* Prevent text selection */
+  transition: background-color 0.15s ease-in-out;
 }
 
-/* Remove margin from the last label */
-.options label:last-child {
-    margin-bottom: 0;
+.menu-item:hover {
+  background-color: #0060df; /* Firefox hover blue */
+  color: #ffffff;
 }
 
-.options input[type="checkbox"] {
-    vertical-align: middle;
-    margin-right: 5px; /* Minimal space */
+/* Checkmark styles */
+.menu-item::before {
+  /* Default content is a subtle placeholder */
+  content: "·"; 
+  position: absolute;
+  left: 8px; /* Position checkmark/placeholder to the left */
+  top: 50%;
+  transform: translateY(-50%);
+  font-weight: normal; /* Make placeholder less bold */
+  color: #6c6c6c; /* Dim color for placeholder */
+  visibility: visible; /* Always visible */
+  transition: color 0.15s ease-in-out; /* Smooth color transition on hover */
 }
 
-.options label span {
-    vertical-align: middle;
+/* Style for checked items */
+.menu-item.checked::before {
+  content: "✓"; /* Use checkmark when checked */
+  font-weight: bold; /* Make checkmark bold */
+  color: #0c0c0d; /* Match text color */
 }
 
-.title {
-  font-size: 1.2em; /* Smaller title */
-  margin-bottom: 8px; /* Reduced space below title */
-  font-weight: bold; /* Make title bold */
-  color: #1a1a1a;
-  text-align: center; /* Center the title */
+/* Style for action items (like About) - no checkmark space */
+.menu-item-action {
+    padding-left: 8px; /* Normal padding, no extra space */
+}
+
+.menu-item-action::before {
+    content: none !important; /* Ensure no ::before content */
+}
+
+.menu-item:hover::before {
+  color: #ffffff; /* White checkmark/placeholder on hover */
+}
+
+/* Separator style */
+.menu-separator {
+    border: none;
+    border-top: 1px solid #cccccc;
+    margin: 4px 1px;
+}
+
+/* Dark Mode Styles */
+@media (prefers-color-scheme: dark) {
+  body {
+    background-color: #2a2a2e; /* Dark menu background */
+    color: #fbfbfe;
+  }
+
+  .menu-item:hover {
+    background-color: #0a84ff; /* Slightly different blue for dark */
+    color: #ffffff;
+  }
+
+  .menu-item::before {
+    color: #a1a1a6; /* Dim placeholder color for dark mode */
+  }
+
+  .menu-item.checked::before {
+     color: #fbfbfe; /* Match dark mode text for checkmark */
+  }
+
+  .menu-item:hover::before {
+     color: #ffffff;
+  }
+
+  .menu-separator {
+      border-top-color: #515154; /* Darker separator */
+  }
 }

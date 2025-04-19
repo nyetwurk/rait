@@ -19,40 +19,51 @@ function tabUpdateOrCreate(id, prop, activate) {
     return browser.tabs.create(finalProp);
 }
 
-function updateAndRemoveOldTabs(oldTabs, bookmarks, recurseTasks, updateTasks) {
-    let isFirstUrlRef = { value: true }; // Ref object to track first URL encounter
-    /* gather recurseTasks and updateTasks */
-    recurseBookmarks(oldTabs, bookmarks, recurseTasks, updateTasks, isFirstUrlRef); // Pass the ref
-    /* traverse bookmark list */
-    Promise.all(recurseTasks)
-    .then(function() {
-	/* traverse existing tabs, possibly to be updated */
-	Promise.all(updateTasks)
-        .then(arrayOfResults => {
-	    /* get list of successes */
-	    let ok = arrayOfResults.filter(v => v.ok);
-	    // remove leftover tabs, but only if we have new tabs, otherwise
-	    // there will be nothing left and the window will close.
-	    if (storedOptions.indexOf("closeOtherTabs") != -1 &&
-		ok.length>0 && oldTabs.length>0) {
-		browser.tabs.remove(oldTabs);
-	    }
-	    /* get list of failures */
-	    let errs = arrayOfResults.filter(v => !v.ok)
-	    for (err of errs) {
-		let id = err.tab.id;
-		let url = err.url;
-                // Pass error info via URL hash
-                let errorPageUrl = `/error.html#url=${encodeURIComponent(url)}&isNew=${id == null}`;
-		tabUpdateOrCreate(id, { url: errorPageUrl }, false) // Ensure error pages aren't activated
-		.then (tab => {
-		    console.log(`Not permitted to load "${url}" in tab #${tab.id}`);
-		    // No longer need to populate errMap here
-		})
-                .catch(e => console.error(`Failed to open error page for ${url}:`, e)); // Add catch for error page update failure
-	    }
-	});
-    });
+async function updateAndRemoveOldTabs(oldTabIds, bookmarks, recurseTasks, updateTasks) {
+    // oldTabIds is now the array of IDs again
+    let isFirstUrlRef = { value: true };
+
+    // Start populating tasks (synchronous)
+    recurseBookmarks(oldTabIds, bookmarks, recurseTasks, updateTasks, isFirstUrlRef);
+
+    try {
+        // Wait for recursive bookmark loading tasks to complete
+        await Promise.all(recurseTasks);
+
+        // Wait for all tab update/create tasks to attempt completion
+        const arrayOfResults = await Promise.all(updateTasks);
+
+        /* Process results */
+        let ok = arrayOfResults.filter(v => v.ok);
+
+        // Close other tabs based on the original list of IDs
+        if (storedOptions.includes("closeOtherTabs") && ok.length > 0 && oldTabIds.length > 0) {
+            // Directly remove the original tab IDs
+            try {
+                await browser.tabs.remove(oldTabIds);
+                console.log("Removed old tabs:", oldTabIds);
+            } catch (e) {
+                console.error("Error removing old tabs:", e);
+            }
+        }
+
+        let errs = arrayOfResults.filter(v => !v.ok);
+        for (const err of errs) {
+            let id = err.tab.id;
+            let url = err.url;
+            let errorPageUrl = `/error.html#url=${encodeURIComponent(url)}&isNew=${id == null}`;
+            try {
+                // Await the update/create for the error page
+                const tab = await tabUpdateOrCreate(id, { url: errorPageUrl }, false);
+                console.log(`Redirected tab #${tab.id} to error page for restricted URL: "${url}"`);
+            } catch (e) {
+                console.error(`Failed to open error page for ${url}:`, e);
+            }
+        }
+    } catch (e) {
+        // Catch errors from Promise.all itself
+        console.error("Error processing tab updates or bookmark recursion:", e);
+    }
 }
 
 /* Give a promise return values and add it to the task list */
@@ -67,56 +78,57 @@ function loadTab(promise, id, url, updateTasks)
 }
 
 /* recursively generate list of old tabs and bookmark loading promises */
-function recurseBookmarks(oldTabs, bookmarks, recurseTasks, updateTasks, isFirstUrlRef) {
-    for (child of bookmarks) {
-	if (child.url != null) {
-	    let id = (oldTabs.length>0)?oldTabs.shift():null;
-            // Determine if this tab should be activated
+function recurseBookmarks(oldTabIds, bookmarks, recurseTasks, updateTasks, isFirstUrlRef) {
+    for (const child of bookmarks) {
+        if (child.url != null) {
+            // Get tab ID to update/reuse, or null if creating new
+            let id = (oldTabIds.length > 0) ? oldTabIds.shift() : null;
+
             let activate = false;
             if (storedOptions.includes("activateFirstTab") && isFirstUrlRef.value) {
                 activate = true;
-                isFirstUrlRef.value = false; // Mark first URL as processed
+                isFirstUrlRef.value = false;
             }
-	    let p = tabUpdateOrCreate(id, { url: child.url }, activate); // Pass activate flag
-	    loadTab(p, id, child.url, updateTasks); // Pass updateTasks
-	} else {
-	    /* recurse if enabled */
-	    if (storedOptions.includes("recurse")) {
-		let getting =
-		    browser.bookmarks.getChildren(child.id)
-		    // Pass tasks and ref down during recursion
-		    .then(newBookmarks => recurseBookmarks(oldTabs, newBookmarks, recurseTasks, updateTasks, isFirstUrlRef))
-		recurseTasks.push(getting);
-	    }
-	}
+            // tabUpdateOrCreate returns a promise
+            let p = tabUpdateOrCreate(id, { url: child.url }, activate);
+            // loadTab wraps it and pushes onto updateTasks
+            loadTab(p, id, child.url, updateTasks);
+        } else {
+            if (storedOptions.includes("recurse")) {
+                // Push the promise chain for getting children and recursing
+                let getting = browser.bookmarks.getChildren(child.id)
+                    .then(newBookmarks => recurseBookmarks(oldTabIds, newBookmarks, recurseTasks, updateTasks, isFirstUrlRef)); // Pass oldTabIds
+                recurseTasks.push(getting);
+            }
+        }
     }
 }
 
-function replaceAllInTabs(id) {
-    // Initialize state locally for this invocation
+async function replaceAllInTabs(id) {
     let recurseTasks = [];
     let updateTasks = [];
-    // errMap is no longer needed here or globally
 
-    browser.storage.local.get()
-    .then(options => {
-	/* copy options */
-	// Assuming 'options' structure is { options: [...] } based on original code
-        storedOptions = options.options || []; // Ensure storedOptions is an array
-	/* grab bookmarks of this bookmark id */
-	let bookmarkPromise = browser.bookmarks.getChildren(id);
-	/* grab current open tabs */
-	browser.tabs.query({ currentWindow:true })
-	.then(tabs => {
-	    /* extract array of tab ids */
-	    let tabIds = tabs.map(a => a.id);
-	    /* traverse bookmarks, passing local state */
-	    bookmarkPromise.then(bms => updateAndRemoveOldTabs(tabIds, bms, recurseTasks, updateTasks))
-                         .catch(e => console.error("Error processing bookmarks:", e)); // Add error handling for bookmark processing
-	})
-        .catch(e => console.error("Error querying tabs:", e)); // Add error handling for tab query
-    })
-    .catch(e => console.error("Error getting storage:", e)); // Add error handling for storage access
+    try {
+        // Use await for storage access
+        const options = await browser.storage.local.get();
+        storedOptions = options.options || []; // Revert default logic
+
+        // Use await for bookmarks and tabs query (can run in parallel)
+        const [bms, tabs] = await Promise.all([
+            browser.bookmarks.getChildren(id),
+            browser.tabs.query({ currentWindow: true })
+        ]);
+        
+        // Extract tab IDs again
+        let tabIds = tabs.map(a => a.id);
+        
+        // Pass the tab IDs array to updateAndRemoveOldTabs
+        await updateAndRemoveOldTabs(tabIds, bms, recurseTasks, updateTasks);
+
+    } catch (e) {
+        // Catch errors from storage, bookmarks, tabs query, or updateAndRemoveOldTabs
+        console.error("Error during replaceAllInTabs execution:", e);
+    }
 }
 
 browser.contextMenus.onClicked.addListener((info, tab) => {
