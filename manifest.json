@@ -3,7 +3,7 @@
   "name": "Replace All in Tabs",
   "description": "Replace existing tabs with all bookmarks from a bookmark folder",
   "version": "1.1.0",
-  "version_name": "1.1.0-rc1",
+  "version_name": "1.1.0",
   "author": "Nye Liu",
 
   "applications": {
