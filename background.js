@@ -4,8 +4,6 @@ browser.contextMenus.create({
     contexts: ["bookmark"]
 });
 
-var storedOptions;
-
 // Test URLs for error page verification
 const TEST_URLS = {
     // Regular URLs
@@ -35,16 +33,25 @@ function constructErrorPageUrl(url, isNewTab) {
     return `/error.html#url=${encodedUrl}&isNew=${isNewTab}`;
 }
 
+// Helper function to update an existing tab or create a new one
+// Returns a promise that resolves with the tab object
 function tabUpdateOrCreate(id, prop, activate) {
-    let finalProp = {...prop}; // Copy properties
-    // Only explicitly set 'active' if the option is enabled.
+    let finalProp = { ...prop }; // Copy properties
+
+    // Only set 'active' property if explicitly told to activate
     // Otherwise, let the browser decide the default active state.
-    // We check storedOptions here as it's simpler than passing the boolean down.
-    if (storedOptions.includes("activateFirstTab")) {
-        finalProp.active = activate;
+    // The decision to activate is made *before* calling this function.
+    if (activate) {
+        finalProp.active = true;
     }
-    if (id!=null)
-	return browser.tabs.update(id, finalProp);
+
+    if (id != null) {
+        return browser.tabs.update(id, finalProp);
+    }
+    // Ensure 'active' is only set if needed, even for new tabs
+    if (!activate) {
+        delete finalProp.active; // Don't force inactive if not needed
+    }
     return browser.tabs.create(finalProp);
 }
 
@@ -53,24 +60,35 @@ function shouldMarkTabForRemoval(tab, successfulTabIds) {
     return !successfulTabIds.has(tab.id);
 }
 
-// Helper function to determine if we need to keep a tab for safety
-function needsSafetyTab(originalTabs, tabsMarkedForRemoval) {
-    const originalNonPinnedIds = new Set(originalTabs.filter(t => !t.pinned).map(t => t.id));
-    const markedNonPinnedIds = new Set(tabsMarkedForRemoval.filter(t => !t.pinned).map(t => t.id));
-    return originalNonPinnedIds.size === markedNonPinnedIds.size &&
-           tabsMarkedForRemoval.length > 0 &&
-           tabsMarkedForRemoval.length === markedNonPinnedIds.size;
+// Utility function to get a Set of non-pinned tab IDs from a list of tab objects
+function getNonPinnedIds(tabs) {
+    return new Set(tabs.filter(t => !t.pinned).map(t => t.id));
 }
 
-async function updateAndRemoveOldTabs(originalTabs, bookmarks, recurseTasks, updateTasks) {
+// Helper function to determine if we need to keep a tab for safety
+// This is only called when 'keepPinnedTabs' is FALSE.
+// It checks if *all* original non-pinned tabs were *also* marked for removal
+// (meaning none of them were successfully reused for new bookmarks).
+function needsSafetyTab(originalTabs, tabsMarkedForRemoval) {
+    const originalNonPinnedIds = getNonPinnedIds(originalTabs);
+    const markedNonPinnedIds = getNonPinnedIds(tabsMarkedForRemoval);
+
+    // If the set of non-pinned original tabs is the same size as the set of non-pinned marked tabs,
+    // and there are actually tabs marked (i.e., size > 0), it means no original non-pinned tab was reused.
+    // We compare sizes as a simple way to check if the sets contain the same elements in this specific context.
+    return originalNonPinnedIds.size > 0 && originalNonPinnedIds.size === markedNonPinnedIds.size;
+}
+
+async function updateAndRemoveOldTabs(originalTabs, bookmarks, recurseTasks, updateTasks, currentOptions) {
     // Debug: Log initial state
     // console.log("[Debug] Initial tabs:", originalTabs.map(t => ({id: t.id, pinned: t.pinned, url: t.url})));
-    // console.log("[Debug] Options:", storedOptions);
+    // console.log("[Debug] Options:", currentOptions);
 
     let oldTabObjects = [...originalTabs];
     let isFirstUrlRef = { value: true };
 
-    recurseBookmarks(oldTabObjects, bookmarks, recurseTasks, updateTasks, isFirstUrlRef);
+    // Pass options down to recurseBookmarks
+    recurseBookmarks(oldTabObjects, bookmarks, recurseTasks, updateTasks, isFirstUrlRef, currentOptions);
 
     try {
         await Promise.all(recurseTasks);
@@ -79,31 +97,23 @@ async function updateAndRemoveOldTabs(originalTabs, bookmarks, recurseTasks, upd
         let okResults = arrayOfResults.filter(v => v.ok);
         let successfulTabIds = new Set(okResults.map(res => res.tab.id));
 
-        if (storedOptions.includes("closeOtherTabs") && originalTabs.length > 0) {
-            // Mark tabs for removal
+        // Check options locally
+        if (currentOptions.includes("closeOtherTabs") && originalTabs.length > 0) {
             let tabsMarkedForRemoval = originalTabs.filter(tab =>
                 shouldMarkTabForRemoval(tab, successfulTabIds)
             );
 
-            // Debug: Log tabs marked for removal
-            // console.log("[Debug] Tabs marked for removal:", tabsMarkedForRemoval.map(t => ({id: t.id, pinned: t.pinned, url: t.url})));
-
             let tabsToRemove = [...tabsMarkedForRemoval];
-            let keepPinned = storedOptions.includes("keepPinnedTabs");
+            // Determine keepPinned locally
+            const keepPinned = currentOptions.includes("keepPinnedTabs");
 
-            // Apply pinned tab filter
             if (keepPinned) {
                 tabsToRemove = tabsToRemove.filter(tab => !tab.pinned);
             } else if (needsSafetyTab(originalTabs, tabsMarkedForRemoval)) {
-                // Safety check: keep at least one tab
                 tabsToRemove.shift();
             }
 
-            // Get final IDs and remove tabs
             let tabIdsToRemove = tabsToRemove.map(tab => tab.id);
-
-            // Debug: Log final tabs to remove
-            // console.log("[Debug] Final tabs to remove:", tabIdsToRemove);
 
             if (tabIdsToRemove.length > 0) {
                 try {
@@ -150,8 +160,9 @@ function loadTab(promise, id, url, updateTasks) {
     );
 }
 
-function recurseBookmarks(oldTabObjects, bookmarks, recurseTasks, updateTasks, isFirstUrlRef) {
-    const keepPinned = storedOptions.includes("keepPinnedTabs");
+function recurseBookmarks(oldTabObjects, bookmarks, recurseTasks, updateTasks, isFirstUrlRef, currentOptions) {
+    // Determine keepPinned locally
+    const keepPinned = currentOptions.includes("keepPinnedTabs");
 
     for (const child of bookmarks) {
         if (child.url != null) {
@@ -181,17 +192,20 @@ function recurseBookmarks(oldTabObjects, bookmarks, recurseTasks, updateTasks, i
                 // console.log(`[Debug] Creating new tab for URL ${child.url}`);
             }
 
+            // Determine activateFirstTab locally
             let activate = false;
-            if (storedOptions.includes("activateFirstTab") && isFirstUrlRef.value) {
+            if (currentOptions.includes("activateFirstTab") && isFirstUrlRef.value) {
                 activate = true;
                 isFirstUrlRef.value = false;
             }
             let p = tabUpdateOrCreate(id, { url: child.url }, activate);
             loadTab(p, id, child.url, updateTasks);
         } else {
-            if (storedOptions.includes("recurse")) {
+            // Check recurse option locally
+            if (currentOptions.includes("recurse")) {
                 let getting = browser.bookmarks.getChildren(child.id)
-                    .then(newBookmarks => recurseBookmarks(oldTabObjects, newBookmarks, recurseTasks, updateTasks, isFirstUrlRef));
+                    // Pass options down in recursive call
+                    .then(newBookmarks => recurseBookmarks(oldTabObjects, newBookmarks, recurseTasks, updateTasks, isFirstUrlRef, currentOptions));
                 recurseTasks.push(getting);
             }
         }
@@ -203,22 +217,19 @@ async function replaceAllInTabs(id) {
     let updateTasks = [];
 
     try {
-        // Use await for storage access
-        const options = await browser.storage.local.get();
-        // Use defaults if options not set (from options.js)
-        storedOptions = options.options === undefined ? defaultOptions : options.options;
+        const settings = await browser.storage.local.get();
+        // Determine effective options locally
+        const effectiveOptions = settings.options === undefined ? defaultOptions : settings.options;
 
-        // Use await for bookmarks and tabs query (can run in parallel)
         const [bms, tabs] = await Promise.all([
             browser.bookmarks.getChildren(id),
             browser.tabs.query({ currentWindow: true })
         ]);
 
-        // Pass the full tabs array to updateAndRemoveOldTabs
-        await updateAndRemoveOldTabs(tabs, bms, recurseTasks, updateTasks);
+        // Pass effectiveOptions down
+        await updateAndRemoveOldTabs(tabs, bms, recurseTasks, updateTasks, effectiveOptions);
 
     } catch (e) {
-        // Catch errors from storage, bookmarks, tabs query, or updateAndRemoveOldTabs
         console.error("Error during replaceAllInTabs execution:", e);
     }
 }

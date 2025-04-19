@@ -1222,4 +1222,5 @@
     module.exports = globalThis.browser;
   }
 });
-//# sourceMappingURL=browser-polyfill.js.map
+// Comment out the source map URL reference
+// //# sourceMappingURL=browser-polyfill.js.map
