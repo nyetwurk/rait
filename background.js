@@ -79,6 +79,18 @@ function needsSafetyTab(originalTabs, tabsMarkedForRemoval) {
     return originalNonPinnedIds.size > 0 && originalNonPinnedIds.size === markedNonPinnedIds.size;
 }
 
+// Helper function to find the index of a reusable tab based on keepPinned setting
+function findReusableTabIndex(tabObjects, keepPinned) {
+    if (keepPinned) {
+        // Find the index of the first *unpinned* tab
+        return tabObjects.findIndex(tab => !tab.pinned);
+    } else {
+        // Find the index of the first available tab, regardless of pinned status
+        // If the list has items, the index is 0, otherwise it's -1 implicitly (length check handles this)
+        return tabObjects.length > 0 ? 0 : -1;
+    }
+}
+
 async function updateAndRemoveOldTabs(originalTabs, bookmarks, recurseTasks, updateTasks, currentOptions) {
     // Debug: Log initial state
     // console.log("[Debug] Initial tabs:", originalTabs.map(t => ({id: t.id, pinned: t.pinned, url: t.url})));
@@ -161,29 +173,19 @@ function loadTab(promise, id, url, updateTasks) {
 }
 
 function recurseBookmarks(oldTabObjects, bookmarks, recurseTasks, updateTasks, isFirstUrlRef, currentOptions) {
-    // Determine keepPinned locally
     const keepPinned = currentOptions.includes("keepPinnedTabs");
 
     for (const child of bookmarks) {
         if (child.url != null) {
             let id = null;
-            let oldTabIndex = -1;
 
-            if (keepPinned) {
-                for (let i = 0; i < oldTabObjects.length; i++) {
-                    if (!oldTabObjects[i].pinned) {
-                        oldTabIndex = i;
-                        break;
-                    }
-                }
-            } else {
-                if (oldTabObjects.length > 0) {
-                    oldTabIndex = 0;
-                }
-            }
+            // Use the helper function to find the index
+            const oldTabIndex = findReusableTabIndex(oldTabObjects, keepPinned);
 
+            // If we found a tab to reuse
             if (oldTabIndex !== -1) {
                 id = oldTabObjects[oldTabIndex].id;
+                // Remove the reused tab from the list
                 oldTabObjects.splice(oldTabIndex, 1);
                 // Debug: Log tab reuse
                 // console.log(`[Debug] Reusing tab ${id} for URL ${child.url}`);
@@ -192,19 +194,20 @@ function recurseBookmarks(oldTabObjects, bookmarks, recurseTasks, updateTasks, i
                 // console.log(`[Debug] Creating new tab for URL ${child.url}`);
             }
 
-            // Determine activateFirstTab locally
+            // Determine activation status
             let activate = false;
             if (currentOptions.includes("activateFirstTab") && isFirstUrlRef.value) {
                 activate = true;
                 isFirstUrlRef.value = false;
             }
+
+            // Create/update tab and add task
             let p = tabUpdateOrCreate(id, { url: child.url }, activate);
             loadTab(p, id, child.url, updateTasks);
         } else {
-            // Check recurse option locally
+            // Handle folders
             if (currentOptions.includes("recurse")) {
                 let getting = browser.bookmarks.getChildren(child.id)
-                    // Pass options down in recursive call
                     .then(newBookmarks => recurseBookmarks(oldTabObjects, newBookmarks, recurseTasks, updateTasks, isFirstUrlRef, currentOptions));
                 recurseTasks.push(getting);
             }

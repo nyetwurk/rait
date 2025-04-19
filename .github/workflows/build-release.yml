@@ -63,4 +63,4 @@ jobs:
           prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
           files: ${{ steps.package_info.outputs.xpi_file }} # Upload the built XPI
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Needs the token to create releases 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Needs the token to create releases
