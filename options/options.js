@@ -55,35 +55,56 @@ function handleItemClick(event) {
 }
 
 /*
-Initialization: 
+Initialization:
 1. Fetch stored settings and update the UI.
 2. Add click listeners to menu items.
 */
 
-// Fetch settings and update UI
-const gettingStoredSettings = browser.storage.local.get(); 
-// Ensure options is an array if storage is empty/corrupt
-gettingStoredSettings.then(settings => updateUI({ options: settings.options || [] }), onError); 
+document.addEventListener('DOMContentLoaded', async () => {
+    try {
+        // Fetch settings and update UI
+        const settings = await browser.storage.local.get();
+        let effectiveOptions;
 
-// Add click listeners
-const menuItems = document.querySelectorAll(".menu-item");
-for (let item of menuItems) {
-    // Check if it's a toggleable option item
-    if (item.dataset.option) { 
-        item.addEventListener('click', handleItemClick);
-    } else if (item.id === 'about-link') { 
-        // Handle click for the 'About' item
-        item.addEventListener('click', () => {
-            const repoUrl = "https://github.com/nyetwurk/rait"; 
-            browser.tabs.create({ url: repoUrl });
-            window.close(); // Close the popup after opening the tab
-        });
-    } else if (item.id === 'amo-link') { 
-        // Handle click for the 'AMO' item
-        item.addEventListener('click', () => {
-            const amoUrl = "https://addons.mozilla.org/en-US/firefox/addon/replace-all-in-tabs/"; 
-            browser.tabs.create({ url: amoUrl });
-            window.close(); // Close the popup after opening the tab
-        });
+        // Check if options have NEVER been saved before for this user
+        if (settings.options === undefined) {
+            // Set the initial default state, including keepPinnedTabs
+            effectiveOptions = ["keepPinnedTabs"];
+            // Save these defaults back to storage for the first time
+            await browser.storage.local.set({ options: effectiveOptions });
+        } else {
+            // Options HAVE been saved before (even if it's an empty array now)
+            // Respect the user's saved choices entirely.
+            effectiveOptions = settings.options; // Use exactly what was saved
+        }
+
+        // Update the UI based on the determined settings
+        updateUI({ options: effectiveOptions });
+
+        // Add click listeners now that DOM is ready and UI is updated
+        const menuItems = document.querySelectorAll(".menu-item");
+        for (let item of menuItems) {
+            // Check if it's a toggleable option item
+            if (item.dataset.option) {
+                item.addEventListener('click', handleItemClick);
+            } else if (item.id === 'about-link') {
+                // Handle click for the 'View on GitHub' item (ID is 'about-link')
+                item.addEventListener('click', () => {
+                    const repoUrl = "https://github.com/nyetwurk/rait";
+                    browser.tabs.create({ url: repoUrl });
+                    window.close(); // Close the popup after opening the tab
+                });
+            } else if (item.id === 'view-in-addons') {
+                // Handle click for the 'Feedback' item
+                item.addEventListener('click', () => {
+                    const amoUrl = "https://addons.mozilla.org/en-US/firefox/addon/replace-all-in-tabs/";
+                    browser.tabs.create({ url: amoUrl });
+                    window.close(); // Close the popup after opening the tab
+                });
+            }
+        }
+
+    } catch (e) {
+        onError(e); // Use the existing error handler
     }
-}
+});

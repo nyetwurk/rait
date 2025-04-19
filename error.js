@@ -22,5 +22,5 @@ window.onload = function() {
     } else {
         console.error("Error page loaded without URL in hash.");
         document.getElementById("bad_url").textContent = "Error: Could not determine the problematic URL.";
-    }
+}
 };

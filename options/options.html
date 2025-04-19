@@ -8,10 +8,13 @@
 
   <body>
     <ul class="menu-list" role="menu">
+      <li class="menu-item" role="menuitemcheckbox" aria-checked="false" data-option="keepPinnedTabs" title="Prevent pinned tabs from being closed or replaced when opening bookmarks.">
+	Keep pinned tabs
+      </li>
       <li class="menu-item" role="menuitemcheckbox" aria-checked="false" data-option="activateFirstTab" title="Make the first tab opened by the extension the active/focused tab.">
 	Make first opened tab active
       </li>
-      <li class="menu-item" role="menuitemcheckbox" aria-checked="false" data-option="closeOtherTabs" title="Close all tabs that existed before replacing them with bookmark tabs.">
+      <li class="menu-item" role="menuitemcheckbox" aria-checked="false" data-option="closeOtherTabs" title="Close all existing tabs after loading the new bookmark tabs.">
 	Close all other tabs
       </li>
       <li class="menu-item" role="menuitemcheckbox" aria-checked="false" data-option="recurse" title="Include bookmarks from sub-folders within the selected folder.">
@@ -21,9 +24,7 @@
       <li class="menu-item menu-item-action" id="about-link" role="menuitem" title="Open the extension's GitHub page.">
 	View on GitHub
       </li>
-      <li class="menu-item menu-item-action" id="amo-link" role="menuitem" title="Open the extension's page on addons.mozilla.org">
-	View on Firefox Add-ons
-      </li>
+      <li class="menu-item menu-item-action" id="view-in-addons">Feedback</li>
     </ul>
 
     <script src="options.js"></script>
