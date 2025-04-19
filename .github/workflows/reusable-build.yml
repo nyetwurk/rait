@@ -1,0 +1,52 @@
+# .github/workflows/reusable-build.yml
+name: Reusable Make Build
+
+on:
+  workflow_call:
+    # No outputs needed now, artifact is uploaded directly
+    # outputs:
+    #   xpi_path:
+    #     description: "The path to the generated XPI file"
+    #     value: ${{ jobs.build.outputs.xpi_path }}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    # No job outputs needed
+    # outputs:
+    #   xpi_path: ${{ steps.set_xpi_path.outputs.path }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install jq
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y jq
+
+      - name: Build XPI using Makefile
+        # Assuming 'make' creates the XPI in the root directory
+        run: make xpi
+
+      - name: Find XPI file path
+        id: find_xpi
+        run: |
+          # Find the .xpi file (adjust pattern if needed)
+          XPI_FILE=$(ls *.xpi | head -n 1)
+          if [ -z "$XPI_FILE" ]; then
+            echo "Error: No .xpi file found after running make."
+            exit 1
+          fi
+          echo "Found XPI: $XPI_FILE"
+          echo "xpi_file=$XPI_FILE" >> $GITHUB_OUTPUT
+        shell: bash
+
+      - name: Verify XPI exists
+        run: ls -l ${{ steps.find_xpi.outputs.xpi_file }}
+
+      - name: Upload XPI Build Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rait-build-xpi # Name for the artifact from this build
+          path: ${{ steps.find_xpi.outputs.xpi_file }}
+          retention-days: 7

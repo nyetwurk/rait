@@ -35,23 +35,24 @@ body {
 
 /* Checkmark styles */
 .menu-item::before {
-  /* Default content is a subtle placeholder */
-  content: "·"; 
+  /* Reserve space, but hide by default */
+  content: ""; /* Set empty content */
+  display: inline-block; /* Allow width/height if needed, helps alignment */
+  width: 1em; /* Reserve approximate width of a checkmark */
   position: absolute;
-  left: 8px; /* Position checkmark/placeholder to the left */
+  left: 8px; /* Position checkmark to the left */
   top: 50%;
   transform: translateY(-50%);
-  font-weight: normal; /* Make placeholder less bold */
-  color: #6c6c6c; /* Dim color for placeholder */
-  visibility: visible; /* Always visible */
-  transition: color 0.15s ease-in-out; /* Smooth color transition on hover */
+  font-weight: bold;
+  text-align: center; /* Center checkmark within the space */
+  visibility: hidden; /* Hidden by default */
 }
 
 /* Style for checked items */
 .menu-item.checked::before {
   content: "✓"; /* Use checkmark when checked */
-  font-weight: bold; /* Make checkmark bold */
-  color: #0c0c0d; /* Match text color */
+  color: #0c0c0d; /* Match text color - Moved color here */
+  visibility: visible; /* Show checkmark when item has 'checked' class */
 }
 
 /* Style for action items (like About) - no checkmark space */
@@ -64,7 +65,8 @@ body {
 }
 
 .menu-item:hover::before {
-  color: #ffffff; /* White checkmark/placeholder on hover */
+  /* Only show color change if the checkmark is visible */
+  color: #ffffff;
 }
 
 /* Separator style */

@@ -5,62 +5,55 @@ on:
   push:
     branches: [ main ] # Or your default branch
     tags:
-      - 'v*' # Trigger on tags starting with v
+      - 'v*.*.*' # Trigger on version tags like v1.0.0
   pull_request:
     branches: [ main ] # Or your default branch
     types: [ opened, synchronize ] # Trigger on PR open/update
+  workflow_dispatch: # Allows manual triggering
 
+# Need write permission for contents to create releases
 permissions:
-  contents: write # Needed for creating releases and uploading assets
+  contents: write
 
 jobs:
+  lint:
+    name: Run Linter
+    uses: ./.github/workflows/reusable-lint.yml # Use local reusable workflow
+    permissions: {}
+    secrets: inherit
+
   build:
-    name: Build XPI and Create Release
+    name: Build XPI Package
+    needs: lint # Ensure lint passes before building
+    uses: ./.github/workflows/reusable-build.yml # Use local reusable workflow
+    permissions: {}
+    secrets: inherit
+    # This workflow now uploads the artifact 'rait-build-xpi'
+
+  create_release:
+    name: Create GitHub Release
+    needs: build # Wait for the build job (which calls reusable-build) to succeed
     runs-on: ubuntu-latest
-
     steps:
-      - name: Check out code
-        uses: actions/checkout@v4
-
-      - name: Install jq
-        run: sudo apt-get update && sudo apt-get install -y jq
-
-      - name: Build XPI using Makefile
-        run: make
-
-      - name: Get Package Info
-        id: package_info
-        # Extract version and construct expected filename
-        run: |
-          VERSION=$(jq -r '.version' manifest.json)
-          VERSION_NAME=$(jq -r '.version_name' manifest.json)
-          XPI_FILE="ReplaceAllInTabs-${VERSION_NAME}.xpi"
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "version_name=${VERSION_NAME}" >> $GITHUB_OUTPUT
-          echo "xpi_file=${XPI_FILE}" >> $GITHUB_OUTPUT
-          echo "Verifying file exists: ${XPI_FILE}"
-          ls -l ${XPI_FILE} # Verify the file was created with the correct name
-
-      - name: Upload XPI artifact (for pushes/PRs)
-        if: github.event_name == 'push' && !startsWith(github.ref, 'refs/tags/v') || github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v4
+      - name: Download XPI artifact from build job
+        uses: actions/download-artifact@v4
         with:
-          name: ReplaceAllInTabs-${{ steps.package_info.outputs.version_name }}.xpi
-          path: ${{ steps.package_info.outputs.xpi_file }}
-          retention-days: 5 # Keep artifacts for 5 days for non-release builds
+          name: rait-build-xpi # Name of the artifact uploaded by reusable-build.yml
+          # No path needed, it downloads to the current directory
 
-      - name: Create Release and Upload XPI (for tags)
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v2 # Uses a popular action for releases
+      - name: Verify downloaded XPI exists
+        # Use ls with wildcard as we might not know the exact version in the filename here
+        run: ls -l *.xpi
+
+      - name: Create Release and Upload XPI
+        uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }} # Use the tag that triggered the workflow
           name: Release ${{ github.ref_name }}
-          # Use tag message body for release notes (or customize this)
-          body: |
-            Release based on tag ${{ github.ref_name }}
-            Commit: ${{ github.sha }}
+          body: "Release based on tag ${{ github.ref_name }}. Commit: ${{ github.sha }}"
           # Mark as pre-release if tag contains -rc, -beta, etc.
           prerelease: ${{ contains(github.ref_name, '-rc') || contains(github.ref_name, '-beta') || contains(github.ref_name, '-alpha') }}
-          files: ${{ steps.package_info.outputs.xpi_file }} # Upload the built XPI
+          # Use wildcard to find the downloaded XPI
+          files: "*.xpi"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Needs the token to create releases 
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Needs the token to create releases
