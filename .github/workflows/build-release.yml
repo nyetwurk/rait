@@ -34,7 +34,7 @@ jobs:
         run: |
           VERSION=$(jq -r '.version' manifest.json)
           VERSION_NAME=$(jq -r '.version_name' manifest.json)
-          XPI_FILE="ReplaceAllInTabs-${VERSION}.xpi"
+          XPI_FILE="ReplaceAllInTabs-${VERSION_NAME}.xpi"
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "version_name=${VERSION_NAME}" >> $GITHUB_OUTPUT
           echo "xpi_file=${XPI_FILE}" >> $GITHUB_OUTPUT
