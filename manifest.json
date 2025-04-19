@@ -20,11 +20,7 @@
 
   "browser_action": {
         "default_title": "Replace All in Tabs",
-        "default_icon": {
-          "19": "icons/rait19.png",
-          "20": "icons/rait20.png",
-          "38": "icons/rait38.png"
-        },
+        "default_icon": "icons/rait.svg",
 	"browser_style": true,
 	"default_popup": "options/options.html"
   },
