@@ -27,6 +27,7 @@ This extension aims to restore functionality that was previously available eithe
 *   An older native option (`browser.tabs.loadFolderAndReplace`) was removed ([Bugzilla 395024](https://bugzilla.mozilla.org/show_bug.cgi?id=395024)).
 *   The original "Tab Replace" addon stopped working with Firefox Quantum.
 *   WebExtensions limitations prevent overriding the default left-click behavior or modifying the main bookmark menu directly ([Bugzilla 1448518](https://bugzilla.mozilla.org/show_bug.cgi?id=1448518)). This extension uses the context menu as the available alternative.
+*   Chrome/Chromium currently cannot support this extension because the required `"bookmark"` context for context menus is not implemented. See [Chromium Issue 412168561](https://issues.chromium.org/issues/412168561).
 
 ## License
 
