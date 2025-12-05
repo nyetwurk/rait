@@ -4,10 +4,12 @@
   "version": "1.1.0",
   "description": "Replace All in Tabs Firefox Extension",
   "private": true,
+  "type": "module",
   "scripts": {
     "lint": "eslint ."
   },
   "devDependencies": {
-    "eslint": "^9.39.1"
+    "eslint": "^9.39.1",
+    "globals": "^16.5.0"
   }
 }
