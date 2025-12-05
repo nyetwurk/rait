@@ -17,7 +17,7 @@ jobs:
     #   xpi_path: ${{ steps.set_xpi_path.outputs.path }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Install jq
         run: |
