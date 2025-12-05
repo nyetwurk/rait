@@ -30,12 +30,12 @@ lint: package.json
 	npm run lint
 
 # Clean tag (depends on package.json being up-to-date)
-clean-tag: package.json 
+clean-tag: package.json
 	@echo "Checking for uncommitted changes..."
 	@# This check should now only fail if other manual changes were made,
 	@# or if package.json was *actually* just updated by the rule above.
 	@git diff-index --quiet HEAD -- || (echo "ERROR: Uncommitted changes found. Please commit or stash them." && exit 1)
-	
+
 	@echo "Fetching remote info (master and tags)..."
 	@git fetch origin master --tags --quiet
 
@@ -51,7 +51,7 @@ clean-tag: package.json
 	else \
 	    echo "Local tag v$(VERSION) does not exist. Safe to proceed."; \
 	fi
-	
+
 	@echo "Cleaning local tag v$(VERSION) (if exists)..."
 	git tag -d v$(VERSION) || true
 	@echo "Cleaning remote tag v$(VERSION) (if exists)..."
