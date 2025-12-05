@@ -13,7 +13,7 @@ function constructErrorPageUrl(url, isNewTab) {
     let encodedUrl;
     try {
         encodedUrl = encodeURIComponent(url);
-    } catch (e) {
+    } catch (_e) {
         // If encoding fails, use a placeholder
         encodedUrl = encodeURIComponent("(invalid url)");
     }
