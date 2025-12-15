@@ -45,7 +45,7 @@ jobs:
         run: ls -l ${{ steps.find_xpi.outputs.xpi_file }}
 
       - name: Upload XPI Build Artifact
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: rait-build-xpi # Name for the artifact from this build
           path: ${{ steps.find_xpi.outputs.xpi_file }}
