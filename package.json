@@ -9,7 +9,7 @@
     "lint": "eslint ."
   },
   "devDependencies": {
-    "eslint": "^9.39.1",
+    "eslint": "^9.39.2",
     "globals": "^16.5.0"
   }
 }
