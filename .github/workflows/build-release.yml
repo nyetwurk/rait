@@ -36,7 +36,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Download XPI artifact from build job
-        uses: actions/download-artifact@v6
+        uses: actions/download-artifact@v7
         with:
           name: rait-build-xpi # Name of the artifact uploaded by reusable-build.yml
           # No path needed, it downloads to the current directory
