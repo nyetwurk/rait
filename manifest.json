@@ -2,41 +2,33 @@
   "manifest_version": 2,
   "name": "Replace All in Tabs",
   "description": "Replace existing tabs with all bookmarks from a bookmark folder",
-  "version": "1.1.1",
-  "version_name": "1.1.1",
+  "version": "1.1.2",
+  "version_name": "1.1.2",
   "author": "Nye Liu",
-
-  "applications": {
+  "browser_specific_settings": {
     "gecko": {
       "id": "RAiT@nyet.org",
-      "strict_min_version": "59.0"
+      "strict_min_version": "79.0",
+      "data_collection_permissions": {
+        "required": ["none"]
+      }
     }
   },
-
   "icons": {
     "48": "icons/rait.svg",
     "96": "icons/rait.svg"
   },
-
   "browser_action": {
-        "default_title": "Replace All in Tabs",
-        "default_icon": "icons/rait.svg",
-	"browser_style": true,
-	"default_popup": "options/options.html"
+    "default_title": "Replace All in Tabs",
+    "default_icon": "icons/rait.svg",
+    "browser_style": true,
+    "default_popup": "options/options.html"
   },
-
   "background": {
     "scripts": ["browser-polyfill.js", "background.js"]
   },
-
   "options_ui": {
     "page": "options/options.html"
   },
-
-  "permissions": [
-    "storage",
-    "bookmarks",
-    "contextMenus",
-    "tabs"
-  ]
+  "permissions": ["storage", "bookmarks", "contextMenus", "tabs"]
 }

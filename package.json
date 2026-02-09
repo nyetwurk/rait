@@ -1,7 +1,7 @@
 {
   "name": "rait",
   "_comment_version": "NOTE: Version is automatically synced from manifest.json by 'make'. Edit manifest.json instead.",
-  "version": "1.1.1",
+  "version": "1.1.2",
   "description": "Replace All in Tabs Firefox Extension",
   "private": true,
   "type": "module",
